@@ -1,10 +1,10 @@
 import socket
 import time
 
-HEADER = 64
+HEADER = 4
 PORT = 5050
 FORMAT = "utf-8"
-SERVER = "192.168.1.65"
+SERVER = "192.168.1.77"
 ADDR = (SERVER, PORT)
 ID = "0001"
 
@@ -27,7 +27,7 @@ def main():
     print("starting client...")
     for i in range(10):
         time.sleep(2)  # send msg every 2 seconds
-        msg = f"{ID}, {i}, test"
+        msg = f"{ID}, {i},"
         print(f"sending msg to server...{i}")
         send(msg)
 
