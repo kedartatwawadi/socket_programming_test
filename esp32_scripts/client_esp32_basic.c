@@ -10,7 +10,7 @@ WiFiMulti WiFiMulti;
 #include <WiFi.h>
 
 const char* ssid     = "name";
-const char* password = "passpass";
+const char* password = "passpasspass";
 const char* host = "192.168.1.77";
 const uint16_t port = 5050;
 
@@ -56,8 +56,8 @@ void loop()
         return;
     }
   
-    client.print("   7"); // message length as a 4 byte str
-    client.print("HELLO!!");
+    client.print("   6"); // message length as a 4 byte str
+    client.print("001,23");
     Serial.println("Sent msg to server");
     Serial.println("Closing connection.");
     client.stop();
