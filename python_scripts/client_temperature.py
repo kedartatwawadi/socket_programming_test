@@ -6,7 +6,7 @@ PORT = 5050
 FORMAT = "utf-8"
 SERVER = "192.168.1.77"
 ADDR = (SERVER, PORT)
-ID = "0001"
+ID = "0004"
 
 
 def send(msg):
@@ -27,7 +27,7 @@ def main():
     print("starting client...")
     for i in range(10):
         time.sleep(2)  # send msg every 2 seconds
-        msg = f"{ID}, {i},"
+        msg = f"{ID},{i}"
         print(f"sending msg to server...{i}")
         send(msg)
 
