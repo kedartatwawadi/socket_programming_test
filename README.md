@@ -12,3 +12,7 @@ On widows this could be done as: https://www.python.org/ftp/python/3.7.5/python-
 ## run the client
 1. edit the ip address of server in the `client_temperature.py`
 2. Run the `client_temperature.py`
+
+
+## Resources
+1. https://www.learnpyqt.com/tutorials/multithreading-pyqt-applications-qthreadpool/
