@@ -95,32 +95,23 @@ class TemperatureUI(QMainWindow):
         # Set some main window's properties
         self.setWindowTitle("DataLogger")
         self.setFixedSize(800, 400)
+
         # Set the central widget and the general layout
         self.generalLayout = QVBoxLayout()
+
         self._centralWidget = QWidget(self)
         self.setCentralWidget(self._centralWidget)
         self._centralWidget.setLayout(self.generalLayout)
+
         # Create the display and the buttons
         boxes_layout = self._createBoxes()
+        self.generalLayout.addLayout(boxes_layout)
 
-        self._createActions()
         self._createToolBars()
-
-        self.threadpool = QThreadPool()
 
         # define logger, server
         self.server = ESPLServer(IP_ADDR, PORT, BASE_DIR)
-
-        # Pass the function to execute
-        server_thread = Worker(self.server.start_server)
-        self.threadpool.start(server_thread)
-
-        # logger
-        logger_thread = Worker(self.server.LOGGER.write_msg_cache_to_file)
-        logger_thread.signals.progress.connect(self.setBoxText)
-        self.threadpool.start(logger_thread)
-
-        print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
+        self.startServerThread()
 
     def _createBoxes(self):
         """Create the buttons."""
@@ -142,8 +133,19 @@ class TemperatureUI(QMainWindow):
             self.boxes[_id] = BoxWidget(_id)
             boxesLayout.addWidget(self.boxes[_id].widget, pos[0], pos[1])
 
-        # Add buttonsLayout to the general layout
-        self.generalLayout.addLayout(boxesLayout)
+        # Add boxesLayout to the general layout
+        return boxesLayout
+
+    def startServerThread(self):
+        self.threadpool = QThreadPool()
+        # Pass the function to execute
+        server_thread = Worker(self.server.start_server)
+        self.threadpool.start(server_thread)
+
+        # logger
+        logger_thread = Worker(self.server.LOGGER.write_msg_cache_to_file)
+        logger_thread.signals.progress.connect(self.setBoxText)
+        self.threadpool.start(logger_thread)
 
     def setBoxText(self, msg):
         """Set display's text."""
@@ -155,12 +157,11 @@ class TemperatureUI(QMainWindow):
         """Clear the display."""
         self.setBoxText(box_id, "")
 
-    def _createActions(self):
-        # File actions
+    def _createToolBars(self):
+        # create actions
         self.settingsAction = QAction("Settings", self)
         self.exitAction = QAction("Exit", self)
 
-    def _createToolBars(self):
         # File toolbar
         fileToolBar = self.addToolBar("File")
         fileToolBar.addAction(self.settingsAction)
