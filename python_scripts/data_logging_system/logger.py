@@ -1,5 +1,6 @@
-import socket
-import threading
+#!/usr/bin/env python3
+"""logger class"""
+
 import os
 import datetime
 import csv
@@ -53,15 +54,17 @@ class DataLogger:
     class which handles the logging to the csv file
     """
 
-    def __init__(self, BASE_DIR, CSV_HEADER):
+    def __init__(self, BASE_DIR):
         """
         initialization
         """
         self.BASE_DIR = BASE_DIR
-        self.CSV_HEADER = CSV_HEADER
+        self.CSV_HEADER = "TIME,ID,TEMP"
 
         # cache where threads write their messages
         self.MSG_CACHE = []
+
+        self.running = True
 
     def initialize_DDMMYY_logfile(self):
         """
@@ -100,76 +103,39 @@ class DataLogger:
             f.write(msg + "\n")
         print(f"logged msg:: {msg} to file {file_path}")
 
-    def write_msg_cache_to_file(self):
+    @staticmethod
+    def parse_msg(data_str):
+        """
+        parses the msg from client and returns the id, temp
+        # format: TIME,ID,MSG
+        """
+        _id = data_str.split(",")[1]
+        _temperature = data_str.split(",")[2]
+        return _id, _temperature
+
+    def write_msg_cache_to_file(self, progress_callback):
+        """
+        message written to the csv log file, and send msg to
+        """
+        while self.running:
+            if len(self.MSG_CACHE) > 0:
+                data_str = self.MSG_CACHE.pop()
+                box_id, temperature = self.parse_msg(data_str)
+                progress_callback.emit((box_id, temperature))
+                self.write_msg(data_str)
+
+        print("LOGGER stopped...")
+
+    def write_msg_cache(self):
         """
         message written to the csv log file
         """
-        while True:
+        while self.running:
             if len(self.MSG_CACHE) > 0:
                 data_str = self.MSG_CACHE.pop()
-                print(f"LOGGER::{data_str}")
                 self.write_msg(data_str)
 
+        print("LOGGER stopped...")
 
-class ESPLServer:
-    def __init__(self, IP_ADDR, PORT, HEADER, logger):
-        self.IP_ADDR = IP_ADDR
-        self.PORT = PORT
-        self.HEADER = HEADER
-        self.LOGGER = logger
-        self.FORMAT = "utf-8"
-
-    def initialize_server(self):
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind((self.IP_ADDR, self.PORT))
-        return server
-
-    def start_logging_thread(self):
-        thread = threading.Thread(target=self.LOGGER.write_msg_cache_to_file)
-        thread.start()
-
-    def start_server(self):
-        # initialize the server
-        self.server = self.initialize_server()
-
-        # initialize the logging thread
-        self.start_logging_thread()
-
-        # start the server
-        self.server.listen()
-        print(f"[LISTENING] Server is listening on {self.IP_ADDR}: {self.PORT}")
-        while True:
-            print(f"[ACTIVE CONNECTIONS] {threading.activeCount() - 1}", flush=True)
-            conn, addr = self.server.accept()
-            thread = threading.Thread(target=self.handle_client, args=(conn, addr))
-            thread.start()
-
-    def handle_client(self, conn, addr):
-        print(f"[NEW CONNECTION] {addr} connected.")
-        msg_length = conn.recv(self.HEADER).decode(self.FORMAT)
-        if msg_length:
-            msg_length = int(msg_length)
-            msg = conn.recv(msg_length).decode(self.FORMAT)
-            print(f"[{addr}] {msg}")
-            self.LOGGER.log(msg)
-
-        conn.close()
-        print(f"[{addr}] Connection Closed")
-
-
-# Server settings
-HEADER = 4
-PORT = 5050
-IP_ADDR = socket.gethostbyname(socket.gethostname())
-
-# logging settings
-BASE_DIR = "/Users/kedar/code/data/"
-CSV_HEADER = "TIME,ID,TEMP"
-
-# define logger, server
-logger = DataLogger(BASE_DIR, CSV_HEADER)
-server = ESPLServer(IP_ADDR, PORT, HEADER, logger)
-
-# start server
-print("[STARTING] server is starting...")
-server.start_server()
+    def stop(self):
+        self.running = False
