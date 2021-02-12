@@ -85,36 +85,11 @@ class BoxWidget:
         self.setDisplayText("")
 
 
-# Create a subclass of QMainWindow to setup the calculator's GUI
-class TemperatureUI(QMainWindow):
-    """PyCalc's View (GUI)."""
+class DisplayGrid:
+    def __init__(self):
+        self.widget = QWidget()
 
-    def __init__(self, IP_ADDR, PORT, BASE_DIR):
-        """View initializer."""
-        super().__init__()
-        # Set some main window's properties
-        self.setWindowTitle("DataLogger")
-        self.setFixedSize(800, 400)
-
-        # Set the central widget and the general layout
-        self.generalLayout = QVBoxLayout()
-
-        self._centralWidget = QWidget(self)
-        self.setCentralWidget(self._centralWidget)
-        self._centralWidget.setLayout(self.generalLayout)
-
-        # Create the display and the buttons
-        boxes_layout = self._createBoxes()
-        self.generalLayout.addLayout(boxes_layout)
-
-        self._createToolBars()
-
-        # define logger, server
-        self.server = ESPLServer(IP_ADDR, PORT, BASE_DIR)
-        self.startServerThread()
-
-    def _createBoxes(self):
-        """Create the buttons."""
+        """Create the boxes"""
         self.boxes = {}
         boxesLayout = QGridLayout()
         # Button text | position on the QGridLayout
@@ -133,19 +108,8 @@ class TemperatureUI(QMainWindow):
             self.boxes[_id] = BoxWidget(_id)
             boxesLayout.addWidget(self.boxes[_id].widget, pos[0], pos[1])
 
-        # Add boxesLayout to the general layout
-        return boxesLayout
-
-    def startServerThread(self):
-        self.threadpool = QThreadPool()
-        # Pass the function to execute
-        server_thread = Worker(self.server.start_server)
-        self.threadpool.start(server_thread)
-
-        # logger
-        logger_thread = Worker(self.server.LOGGER.write_msg_cache_to_file)
-        logger_thread.signals.progress.connect(self.setBoxText)
-        self.threadpool.start(logger_thread)
+        # Add boxesLayout to the the widget
+        self.widget.setLayout(boxesLayout)
 
     def setBoxText(self, msg):
         """Set display's text."""
@@ -156,6 +120,44 @@ class TemperatureUI(QMainWindow):
     def clearBoxText(self):
         """Clear the display."""
         self.setBoxText(box_id, "")
+
+
+# Create a subclass of QMainWindow to setup the calculator's GUI
+class TemperatureUI(QMainWindow):
+    """PyCalc's View (GUI)."""
+
+    def __init__(self, IP_ADDR, PORT, BASE_DIR):
+        """View initializer."""
+        super().__init__()
+        # Set some main window's properties
+        self.setWindowTitle("DataLogger")
+        self.setFixedSize(800, 400)
+
+        # Set the central widget and the general layout
+        main_layout = QVBoxLayout()
+        central_widget = QWidget(self)
+        central_widget.setLayout(main_layout)
+        self.setCentralWidget(central_widget)
+
+        # add the display widget
+        self.display_grid = DisplayGrid()
+        main_layout.addWidget(self.display_grid.widget)
+        self._createToolBars()
+
+        # define logger, server
+        self.server = ESPLServer(IP_ADDR, PORT, BASE_DIR)
+        self.startServerThread()
+
+    def startServerThread(self):
+        self.threadpool = QThreadPool()
+        # Pass the function to execute
+        server_thread = Worker(self.server.start_server)
+        self.threadpool.start(server_thread)
+
+        # logger
+        logger_thread = Worker(self.server.LOGGER.write_msg_cache_to_file)
+        logger_thread.signals.progress.connect(self.display_grid.setBoxText)
+        self.threadpool.start(logger_thread)
 
     def _createToolBars(self):
         # create actions
